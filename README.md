@@ -8,7 +8,7 @@ O objetivo desta apresentação é documentar o problema, a causa raiz e a solu�
 
 Você pode acessar a versão ao vivo da apresentação, com deploy feito no Vercel, através do link abaixo:
 
-**[COLE AQUI O LINK DO SEU DEPLOY NO VERCEL]**
+(https://apresentacao-race-condition.vercel.app/)
 
 ### 🛠️ Como Rodar Localmente
 
@@ -16,7 +16,7 @@ Para visualizar a apresentação em sua máquina local, basta seguir estes passo
 
 1. Clone o repositório:
    ```bash
-   git clone [https://github.com/seu-usuario/nome-do-repositorio.git](https://github.com/seu-usuario/nome-do-repositorio.git)
+   git clone (https://github.com/lucashss88/apresentacao-race-condition)
    ```
 2. Navegue até a pasta do projeto.
 3. Abra o arquivo `index.html` diretamente no seu navegador de preferência.
