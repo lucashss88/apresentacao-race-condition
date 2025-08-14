@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio Técnico: Race Conditions em React</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./js/app.js"></script>
+    <link href="./css/style.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+
+    </style>
+  </head>
+  <body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-5xl">
+      <div id="presentation-container" class="slide-card">
+        <div class="slide active flex-col items-center justify-center text-center p-8 h-full">
+          <h1 class="text-5xl font-extrabold qs-purple">Resolvendo Race Conditions em React</h1>
+          <p class="text-2xl text-gray-600 mt-4">Um Desafio Técnico do Projeto QuickStore</p>
+          <p class="text-xl text-gray-600 font-bold mt-4">Lucas Henrique Serrano Soares</p>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-6">Introdução ao Problema</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
+            <div>
+              <h3 class="font-bold text-xl mb-2">O que é uma Race Condition?</h3>
+              <p class="text-gray-700">Em React, ocorre quando o resultado de uma operação depende da ordem imprevisível de outras operações assíncronas, como atualizações de estado. A UI pode exibir dados desatualizados ou inconsistentes porque uma ação (ex: navegar) acontece antes que uma atualização de estado (<code>setState</code>) seja concluída.</p>
+            </div>
+            <div>
+              <h3 class="font-bold text-xl mb-2">O Contexto: Projeto QuickStore</h3>
+              <p class="text-gray-700">O QuickStore é uma plataforma de e-commerce full-stack. O desafio surgiu no fluxo de autenticação: após o login bem-sucedido, a aplicação tentava redirecionar o usuário para uma rota protegida antes que o estado global de "autenticado" fosse propagado, resultando em falha.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-6">O Cenário: Login e Redirecionamento</h2>
+          <p class="text-xl text-gray-700 mb-4">Após o login, o usuário não era redirecionado automaticamente. Era necessário um refresh na página para a interface refletir o estado de "logado".</p>
+          <pre><code class="language-javascript">
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      // 1. Ação assíncrona de login
+      await login(email, senha);
+
+      // 2. Tentativa de redirecionamento imediato
+      navigate('/produtos'); // <-- O problema começa aqui
+    };
+                    </code>
+                    </pre>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-6">A Causa Raiz: A Natureza Assíncrona do `setState`</h2>
+          <p class="text-xl text-gray-700">A função <code>setUsuario()</code> (dentro do `login`) não atualiza o estado instantaneamente. Ela <strong>agenda uma atualização</strong> para a próxima renderização.</p>
+          <p class="text-xl text-gray-700 mt-4">O comando <code>navigate()</code> era executado <strong>antes</strong> do React re-renderizar os componentes com o novo estado. A página de destino ainda via o usuário como <code>null</code>.</p>
+          <div class="mt-6 text-center text-lg font-semibold text-red-600">
+            Estávamos tentando agir com base em uma informação que ainda não existia no estado.
+          </div>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-6">A Solução Incorreta (Anti-Pattern)</h2>
+          <p class="text-xl text-gray-700 mb-4">Uma solução comum, porém falha, é usar <code>setTimeout</code> para "esperar" a atualização do estado.</p>
+          <pre><code class="language-javascript">
+    await login(email, senha);
+    setTimeout(() => {
+      navigate('/produtos'); // <-- Isso é uma aposta!
+    }, 500);
+                    </code></pre>
+          <p class="text-xl text-gray-700 mt-4"><i class="bi bi-x-circle-fill text-red-500 me-2"></i><strong>Por que é ruim?</strong> É instável. O tempo pode ser insuficiente em conexões lentas ou excessivo em conexões rápidas. Não é uma solução determinística.</p>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-6">A Solução Correta: Ação vs. Reação</h2>
+          <p class="text-xl text-gray-700 mb-4">A abordagem correta é separar a **Ação** (fazer o login) da **Reação** (redirecionar). A navegação deve ser uma <strong>consequência</strong> da mudança de estado.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="font-bold text-lg mb-2">1. Ação (no `Login.tsx`)</h3>
+              <p>O componente de login apenas dispara a atualização do estado, sem se preocupar com o que acontece depois.</p>
+              <pre><code class="language-javascript">await login(email, senha);</code></pre>
+            </div>
+            <div>
+              <h3 class="font-bold text-lg mb-2">2. Reação (no `Layout.tsx`)</h3>
+              <p>Um <code>useEffect</code> em um componente de nível superior "assiste" à mudança no estado <code>usuario</code> e executa a navegação.</p>
+              <pre><code class="language-javascript">
+    useEffect(() => {
+      if (usuario) {
+        navigate('/produtos');
+      }
+    }, [usuario]);
+                            </code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-8">Principais Aprendizados</h2>
+          <ul class="space-y-4 text-xl text-gray-700">
+            <li class="flex items-start"><i class="bi bi-check-circle-fill text-green-500 me-3 mt-1"></i><span><strong>`setState` é assíncrono:</strong> Nunca espere que o estado esteja atualizado na linha seguinte à sua chamada.</span></li>
+            <li class="flex items-start"><i class="bi bi-check-circle-fill text-green-500 me-3 mt-1"></i><span><strong>Use `useEffect` para reagir:</strong> É a ferramenta canônica do React para executar efeitos colaterais (como navegação) em resposta a mudanças de estado.</span></li>
+            <li class="flex items-start"><i class="bi bi-check-circle-fill text-green-500 me-3 mt-1"></i><span><strong>Pense de forma declarativa:</strong> Em vez de dizer ao app "faça isso, depois aquilo", descreva como a UI deve se parecer para um determinado estado, e deixe o React cuidar da transição.</span></li>
+          </ul>
+        </div>
+
+        <div class="slide flex-col p-12 h-full">
+          <h2 class="text-4xl font-bold qs-purple mb-8">Referências</h2>
+          <ul class="space-y-4 text-lg text-gray-700">
+            <li>
+              <a href="https://react.dev/reference/react/useState#setstate" target="_blank" class="text-blue-600 hover:underline"><strong>React Docs: `useState` Hook</strong> - Documentação oficial explicando que as atualizações de estado são enfileiradas.</a>
+            </li>
+            <li>
+              <a href="https://kentcdodds.com/blog/use-state-lazy-initialization-and-function-updates" target="_blank" class="text-blue-600 hover:underline"><strong>Kent C. Dodds: `useState` Lazy Initialization and Function Updates</strong> - Artigo que aprofunda no uso da forma funcional do `setState` para evitar race conditions.</a>
+            </li>
+            <li>
+              <a href="https://joshwcomeau.com/react/why-react-re-renders/" target="_blank" class="text-blue-600 hover:underline"><strong>Josh W. Comeau: Why React Re-Renders</strong> - Explicação visual e detalhada sobre o ciclo de renderização do React.</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="slide flex-col items-center justify-center text-center p-8 h-full">
+          <h2 class="text-5xl font-extrabold qs-purple">Obrigado!</h2>
+          <p class="text-xl text-gray-600 mt-4">Resolver este desafio foi crucial para solidificar minha compreensão do fluxo de dados e do ciclo de vida no React.</p>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center mt-4">
+        <button id="prevBtn" class="bg-qs text-white py-2 px-4 rounded-lg shadow hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+          <i class="bi bi-arrow-left"></i> Anterior
+        </button>
+        <span id="slide-counter" class="text-gray-600 font-medium">1 / 9</span>
+        <button id="nextBtn" class="bg-qs text-white py-2 px-4 rounded-lg shadow hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+          Próximo <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </body>
+</html>
+
