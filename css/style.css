@@ -41,27 +41,9 @@ pre {
 }
 
 @media print {
-  body {
-    background-color: white;
-  }
-  .slide-card {
-    box-shadow: none;
-    border: none;
-    height: auto;
-    aspect-ratio: auto;
-  }
-  .slide {
-    display: flex !important;
-    opacity: 1 !important;
-    page-break-before: always;
-    height: 100vh;
-    justify-content: center;
-    align-items: center;
-  }
-  .slide:first-of-type {
-    page-break-before: auto;
-  }
-  .flex.justify-between.items-center.mt-4 {
-    display: none;
-  }
+  body { background-color: white; }
+  .slide-card { box-shadow: none; border: none; height: auto; aspect-ratio: auto; }
+  .slide { display: flex !important; opacity: 1 !important; page-break-before: always; height: 100vh; }
+  .slide:first-of-type { page-break-before: auto; }
+  .flex.justify-between.items-center.mt-4 { display: none; }
 }
